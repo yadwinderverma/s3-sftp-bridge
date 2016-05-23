@@ -167,7 +167,7 @@ exports.syncSftpDir = function(sftp, sftpDir, s3Location, fileRetentionDays, top
   fileRetentionDays = fileRetentionDays || 14; // Default to retaining files for 14 days.
   return sftp.readdirAsync(sftpDir)
   .then(function(dirList) {
-    return Promise.map(
+    return Promise.mapSeries(
       dirList,
       function(fileInfo) {
         return Promise.try(function() {
