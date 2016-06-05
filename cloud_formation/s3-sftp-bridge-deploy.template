@@ -7,6 +7,14 @@
     }
   },
   "Resources": {
+    "BridgeRequeue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "MessageRetentionPeriod": 1209600,
+        "QueueName": { "Ref": "AWS::StackName" },
+        "VisibilityTimeout": 60
+      }
+    },
     "BridgeRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -75,6 +83,24 @@
                 }
               ]
             }
+          },
+          {
+            "PolicyName": "EventRequeuer",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "sqs:DeleteMessage",
+                    "sqs:GetQueueUrl",
+                    "sqs:ReceiveMessage",
+                    "sqs:SendMessage"
+                  ],
+                  "Resource": { "Fn::GetAtt" : [ "BridgeRequeue", "Arn" ] }
+                }
+              ]
+            }
           }
         ]
       }
@@ -86,6 +112,7 @@
           "S3Bucket": "com.gilt.public.backoffice",
           "S3Key": "lambda_functions/s3-sftp-bridge.zip"
         },
+        "FunctionName": { "Ref": "AWS::StackName" },
         "Description": "Used sync files between S3 and SFTP servers.",
         "Handler": "main.handle",
         "Role": { "Fn::GetAtt" : [ "BridgeRole", "Arn" ] },

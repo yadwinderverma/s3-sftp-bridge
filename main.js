@@ -3,7 +3,8 @@ var AWS = require('aws-sdk'),
     conf = Promise.promisifyAll(require('aws-lambda-config')),
     s3 = Promise.promisifyAll(require('node-s3-encryption-client')),
     awsS3 = Promise.promisifyAll(new AWS.S3()),
-    sftpHelper = require('./lib/sftpHelper');
+    sftpHelper = require('./lib/sftpHelper'),
+    sqs = Promise.promisifyAll(new AWS.SQS());
 
 exports.handle = function(event, context) {
   if (event.Records) {
@@ -32,21 +33,25 @@ exports.pollSftp = function(event, context) {
         streamNames,
         function(streamName) {
           streamName = streamName.trim();
-          var streamConfig = config[streamName];
-          if (!streamConfig) throw new Error("streamName [" + streamName + "] not found in config");
-          return exports.getSftpConfig(streamConfig)
-          .then(function(sftpConfig) {
-            var s3Location = streamConfig.s3Location;
-            if (!s3Location) throw new Error("streamName [" + streamName + "] has no s3Location");
-            console.info("Attempting connection for [" + streamName + "]: host[" + sftpConfig.host + "], username[" + sftpConfig.username + "]");
-            return sftpHelper.withSftpClient(sftpConfig, function(sftp) {
-              return exports.syncSftpDir(sftp, streamConfig.sftpLocation || '/', s3Location, streamConfig.fileRetentionDays);
-            })
-            .then(function(results) {
-              console.info("[" + streamName + "]: Moved " + flatten(results).length + " files from SFTP to S3");
-              return results;
+          if (streamName == 'poll') {
+            return exports.pollSqs(context);
+          } else {
+            var streamConfig = config[streamName];
+            if (!streamConfig) throw new Error("streamName [" + streamName + "] not found in config");
+            return exports.getSftpConfig(streamConfig)
+            .then(function(sftpConfig) {
+              var s3Location = streamConfig.s3Location;
+              if (!s3Location) throw new Error("streamName [" + streamName + "] has no s3Location");
+              console.info("Attempting connection for [" + streamName + "]: host[" + sftpConfig.host + "], username[" + sftpConfig.username + "]");
+              return sftpHelper.withSftpClient(sftpConfig, function(sftp) {
+                return exports.syncSftpDir(sftp, streamConfig.sftpLocation || '/', s3Location, streamConfig.fileRetentionDays);
+              })
+              .then(function(results) {
+                console.info("[" + streamName + "]: Moved " + flatten(results).length + " files from SFTP to S3");
+                return results;
+              });
             });
-          });
+          }
         }
       );
     });
@@ -61,7 +66,41 @@ exports.pollSftp = function(event, context) {
   });
 }
 
-exports.newS3Object = function(event, context) {
+exports.pollSqs = function(context) {
+  return sqs.getQueueUrlAsync({
+    QueueName: context.functionName
+  })
+  .then(function(queueData) {
+    return Promise.mapSeries(
+      Array.apply(null, {length: 10}).map(Number.call, Number),
+      function(i) {
+        return sqs.receiveMessageAsync({
+          QueueUrl: queueData.QueueUrl,
+          MaxNumberOfMessages: 10
+        })
+        .then(function(messages) {
+          return Promise.mapSeries(
+            messages.Messages || [],
+            function(message) {
+              return internalNewS3Object(JSON.parse(message.Body), context)
+              .then(function(results) {
+                return sqs.deleteMessageAsync({
+                  QueueUrl: queueData.QueueUrl,
+                  ReceiptHandle: message.ReceiptHandle
+                })
+                .then(function(data) {
+                  return results;
+                });
+              });
+            }
+          );
+        });
+      }
+    );
+  });
+}
+
+function internalNewS3Object(event, context) {
   return Promise.try(function() {
     return conf.getConfigAsync(context)
     .then(function(config) {
@@ -125,14 +164,30 @@ exports.newS3Object = function(event, context) {
         }
       );
     });
-  })
+  });
+}
+
+exports.newS3Object = function(event, context) {
+  return internalNewS3Object(event, context)
   .then(function(result) {
     context.succeed(flatten(result));
   })
   .catch(function(err) {
-    console.error(err.stack || err);
-    context.fail(err);
-    throw err;
+    console.info("Writing failed message to queue for later processing.");
+    return sqs.getQueueUrlAsync({
+      QueueName: context.functionName
+    })
+    .then(function(queueData) {
+      return sqs.sendMessageAsync({
+        MessageBody: JSON.stringify(event),
+        QueueUrl: queueData.QueueUrl
+      });
+    })
+    .catch(function(err) {
+      console.error(err.stack || err);
+      context.fail(err);
+      throw err;
+    });
   });
 }
 
