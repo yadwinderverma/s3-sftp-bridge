@@ -143,6 +143,7 @@
         "FunctionName": { "Ref": "AWS::StackName" },
         "Description": "Used sync files between S3 and SFTP servers.",
         "Handler": "main.handle",
+        "MemorySize": "256",
         "Role": { "Fn::GetAtt" : [ "BridgeRole", "Arn" ] },
         "Runtime": "nodejs4.3",
         "Timeout": 300,
