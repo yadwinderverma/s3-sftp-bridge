@@ -153,6 +153,57 @@
       "DependsOn": [
         "BridgeResourcePolicy"
       ]
+    },
+    "FunctionTimeoutMetric": {
+      "Type": "AWS::Logs::MetricFilter",    
+      "Properties": {
+        "FilterPattern": "Task timed out",
+        "LogGroupName": { "Fn::Join" : ["", [ "/aws/lambda/", { "Ref" : "BridgeFunction" } ] ] },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "s3-sftp-bridge",
+            "MetricName": "lambda-function-timeouts"
+          }
+        ]
+      },
+      "DependsOn": [
+        "BridgeFunction"
+      ]
+    },
+    "ConnectionTimeoutMetric": {
+      "Type": "AWS::Logs::MetricFilter",    
+      "Properties": {
+        "FilterPattern": "ClientTimeoutException",
+        "LogGroupName": { "Fn::Join" : ["", [ "/aws/lambda/", { "Ref" : "BridgeFunction" } ] ] },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "s3-sftp-bridge",
+            "MetricName": "connection-timeouts"
+          }
+        ]
+      },
+      "DependsOn": [
+        "BridgeFunction"
+      ]
+    },
+    "ErrorMetric": {
+      "Type": "AWS::Logs::MetricFilter",    
+      "Properties": {
+        "FilterPattern": "Error",
+        "LogGroupName": { "Fn::Join" : ["", [ "/aws/lambda/", { "Ref" : "BridgeFunction" } ] ] },
+        "MetricTransformations": [
+          {
+            "MetricValue": "1",
+            "MetricNamespace": "s3-sftp-bridge",
+            "MetricName": "errors"
+          }
+        ]
+      },
+      "DependsOn": [
+        "BridgeFunction"
+      ]
     }
   },
   "Outputs": {

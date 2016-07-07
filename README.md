@@ -139,6 +139,17 @@ the bridge is moving files at the rate you expect). You can alert on individual 
 to only match when streamName matches your stream name.
 
 
+#### Error alerts
+The CloudFormation templates create a few metrics (under the s3-sftp-bridge namespace) that can be used for error
+alerting. You will need to manually set up the alarms to meet your monitoring expectations. The metrics are:
+
+1. connection-timeouts - Triggered when the attempted connection to the sftp server times out. This can probably have
+   a higher alarm threshold, so avoid alerting on transient network slowness.
+2. lambda-function-timeouts - Triggered when the Lambda function runs longer than the configured (5 minute) timeout.
+   The alarm tolerance should be 0, since it's likely that future runs could also timeout.
+3. errors - Triggered for general errors. This should be monitored for unexpected errors.
+
+
 ## Deployment (contributors)
 After making changes, please do the following:
 

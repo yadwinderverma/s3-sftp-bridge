@@ -60,9 +60,14 @@ exports.pollSftp = function(event, context) {
     context.succeed(flatten(result));
   })
   .catch(function(err) {
-    console.error(err.stack || err);
-    context.fail(err);
-    throw err;
+    if (err.level == 'client-timeout') {
+      console.warn('ClientTimeoutException: ' + err);
+      context.succeed([]);
+    } else {
+      console.error(err.stack || err);
+      context.fail(err);
+      throw err;
+    }
   });
 }
 
