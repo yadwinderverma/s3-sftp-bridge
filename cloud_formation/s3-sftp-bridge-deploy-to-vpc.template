@@ -194,7 +194,7 @@
         "MetricTransformations": [
           {
             "MetricValue": "1",
-            "MetricNamespace": "s3-sftp-bridge",
+            "MetricNamespace": { "Ref": "AWS::StackName" },
             "MetricName": "lambda-function-timeouts"
           }
         ]
@@ -211,7 +211,7 @@
         "MetricTransformations": [
           {
             "MetricValue": "1",
-            "MetricNamespace": "s3-sftp-bridge",
+            "MetricNamespace": { "Ref": "AWS::StackName" },
             "MetricName": "connection-timeouts"
           }
         ]
@@ -228,8 +228,42 @@
         "MetricTransformations": [
           {
             "MetricValue": "1",
-            "MetricNamespace": "s3-sftp-bridge",
+            "MetricNamespace": { "Ref": "AWS::StackName" },
             "MetricName": "errors"
+          }
+        ]
+      },
+      "DependsOn": [
+        "BridgeFunction"
+      ]
+    },
+    "S3toSFTPMetric": {
+      "Type": "AWS::Logs::MetricFilter",    
+      "Properties": {
+        "FilterPattern": "[timestamp, requestId, streamName, colon, moved = Moved, numFiles, files = files, from, orig = S3, to, dest = SFTP]",
+        "LogGroupName": { "Fn::Join" : ["", [ "/aws/lambda/", { "Ref" : "BridgeFunction" } ] ] },
+        "MetricTransformations": [
+          {
+            "MetricValue": "$numFiles",
+            "MetricNamespace": { "Ref": "AWS::StackName" },
+            "MetricName": "s3-to-sftp"
+          }
+        ]
+      },
+      "DependsOn": [
+        "BridgeFunction"
+      ]
+    },
+    "SFTPtoS3Metric": {
+      "Type": "AWS::Logs::MetricFilter",    
+      "Properties": {
+        "FilterPattern": "[timestamp, requestId, streamName, colon, moved = Moved, numFiles, files = files, from, orig = SFTP, to, dest = S3]",
+        "LogGroupName": { "Fn::Join" : ["", [ "/aws/lambda/", { "Ref" : "BridgeFunction" } ] ] },
+        "MetricTransformations": [
+          {
+            "MetricValue": "$numFiles",
+            "MetricNamespace": { "Ref": "AWS::StackName" },
+            "MetricName": "sftp-to-s3"
           }
         ]
       },

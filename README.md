@@ -113,16 +113,24 @@ The Lambda scheduled event system allows you to schedule the event at whatever i
 See http://docs.aws.amazon.com/lambda/latest/dg/with-scheduled-events.html for details.
 
 ### Alerting
-You should set up some alerting through CloudWatch Logs to make sure the bridge is behaving as expected. The Bridge function
-writes some useful data to the logs, which will allow you to alert differently for each individual stream. These log entries
-in particular will be useful:
+
+#### File transfer alerts
+
+The CloudFormation template automatically sets up two metrics under a namespace that matches the stack name:
+
+1. s3-to-sftp
+2. sftp-to-s3
+
+These can be used to ensure that files are being moved at the rate that is expected for your system; you should set up
+an alarm to watch for when the transfer counts fall below a reasonable threshold. These metrics rely on log entries that
+look like this:
 
 ```
 [stream-name]: Moved 1 files from S3 to SFTP
 [stream-name]: Moved 1 files from SFTP to S3
 ```
 
-You can set up a CloudWatch Logs metric filter for
+The metric filters look like this:
 
 ```
 [timestamp, requestId, streamName, colon, moved = Moved, numFiles, files = files, from, orig = SFTP, to, dest = S3]
