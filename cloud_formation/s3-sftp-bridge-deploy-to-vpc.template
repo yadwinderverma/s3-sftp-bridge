@@ -223,7 +223,7 @@
     "ErrorMetric": {
       "Type": "AWS::Logs::MetricFilter",    
       "Properties": {
-        "FilterPattern": "Error",
+        "FilterPattern": "UnknownException",
         "LogGroupName": { "Fn::Join" : ["", [ "/aws/lambda/", { "Ref" : "BridgeFunction" } ] ] },
         "MetricTransformations": [
           {

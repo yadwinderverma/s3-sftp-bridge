@@ -64,7 +64,7 @@ exports.pollSftp = function(event, context) {
       console.warn('ClientTimeoutException: ' + err);
       context.succeed([]);
     } else {
-      console.error(err.stack || err);
+      console.error('UnknownException: ' + (err.stack || err));
       context.fail(err);
       throw err;
     }
