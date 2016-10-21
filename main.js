@@ -188,6 +188,9 @@ exports.newS3Object = function(event, context) {
         QueueUrl: queueData.QueueUrl
       });
     })
+    .then(function(sqsData) {
+      context.succeed(sqsData);
+    })
     .catch(function(err) {
       console.error(err.stack || err);
       context.fail(err);

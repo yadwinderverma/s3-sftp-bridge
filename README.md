@@ -1,4 +1,6 @@
 # s3-sftp-bridge
+[![Build Status](https://travis-ci.org/gilt/s3-sftp-bridge.svg?branch=master)](https://travis-ci.org/gilt/s3-sftp-bridge)
+
 An AWS Lambda function that syncs files between Amazon S3 and external FTP servers. For S3 => SFTP, it
 will automatically sync when objects are uploaded to S3. For SFTP => S3, it will poll the SFTP server
 at a given interval and copy to S3. It will maintain the origin directory structure when copying to the

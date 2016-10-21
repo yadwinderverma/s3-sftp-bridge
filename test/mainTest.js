@@ -14,6 +14,7 @@ describe('main', function() {
     sinon.stub(client, 'connect', function(config) { client.emit('ready'); });
     sinon.stub(ssh2, 'Client').returns(client);
     sinon.stub(AWS, 'S3').returns(testHelper.s3);
+    sinon.stub(AWS, 'SQS').returns(testHelper.sqs);
     main = testHelper.require('../main');
   });
 
@@ -24,11 +25,13 @@ describe('main', function() {
   after(function() {
     ssh2.Client.restore();
     AWS.S3.restore();
+    AWS.SQS.restore();
   });
 
   afterEach(function() {
     testHelper.s3.clear();
     testHelper.sftp.clear();
+    testHelper.sqs.clear();
   });
 
   describe('#handle()', function() {
@@ -266,10 +269,14 @@ describe('main', function() {
 
     it('should fail if the sftp config is missing', function() {
       testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name"}}';
-      return testHelper.assertContextFailure(
+      assert.equal(Object.keys(testHelper.sqs.messages).length, 0);
+      return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
-        /SFTP config not found/
+        function() {
+          // Requeued itself by writing to SQS
+          assert.equal(testHelper.sqs.messages['test'].length, 1);
+        }
       );
     });
   });

@@ -34,15 +34,16 @@ describe('sftpHelper', function() {
         sftpHelper.withSftpClient(sftpConfig, function(sftp) {
           return sftpHelper.writeFile(sftp, 'upload/test.txt', 'Hello World!')
           .then(function() {
-            assert.equal(testHelper.sftp.objects['upload/.done/test.txt'], undefined);
             assert.equal(testHelper.sftp.objects['upload/test.txt'], 'Hello World!');
+            assert.equal(Object.keys(testHelper.sftp.objects).length, 1);
             return sftpHelper.processFile(sftp, 'upload', 'test.txt', function(body) {
               assert.equal(body, 'Hello World!');
             });
           });
         }),
         function(result) {
-          assert.equal(testHelper.sftp.objects['upload/.done/test.txt'], 'Hello World!');
+          assert.equal(Object.keys(testHelper.sftp.objects).length, 2);
+          assert.equal(testHelper.sftp.objects[getDoneObjectKey('upload/test.txt')], 'Hello World!');
           assert.equal(testHelper.sftp.objects['upload/test.txt'], undefined);
         }
       );
@@ -61,7 +62,8 @@ describe('sftpHelper', function() {
           });
         }),
         function(result) {
-          assert.equal(testHelper.sftp.objects['upload/.done/test.txt'], 'Hello World!');
+          assert.equal(Object.keys(testHelper.sftp.objects).length, 2);
+          assert.equal(testHelper.sftp.objects[getDoneObjectKey('upload/test.txt')], 'Hello World!');
           assert.equal(testHelper.sftp.objects['upload/test.txt'], undefined);
         }
       );
@@ -85,7 +87,8 @@ describe('sftpHelper', function() {
           });
         }),
         function(result) {
-          assert.equal(testHelper.sftp.objects['upload/.done/test.txt'], 'Hello World!');
+          assert.equal(Object.keys(testHelper.sftp.objects).length, 2);
+          assert.equal(testHelper.sftp.objects[getDoneObjectKey('upload/test.txt')], 'Hello World!');
           assert.equal(testHelper.sftp.objects['upload/test.txt'], undefined);
         }
       );
@@ -160,10 +163,14 @@ describe('sftpHelper', function() {
       this.timeout(5000);
       return testHelper.assertSuccess(
         sftpHelper.withSftpClient(sftpConfig, function(sftp) {
-          return sftpHelper.writeFile(sftp, 'upload/test.txt', 'Hello World!');
+          return sftpHelper.writeFile(sftp, 'upload/test.jpg', 'Hello World!');
         }),
         function(result) {}
       );
     });
   });
 });
+
+function getDoneObjectKey(originalKey) {
+  return Object.keys(testHelper.sftp.objects).find(function(key) { return key != originalKey && testHelper.sftp.objects[key]});
+}

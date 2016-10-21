@@ -194,6 +194,23 @@ exports.sftp = {
   }
 }
 
+exports.sqs = {
+  'messages': {},
+  'clear': function() {
+    this.messages = {};
+  },
+  'getQueueUrl': function(params, callback) {
+    callback(null, {
+      QueueUrl: params.QueueName
+    });
+  },
+  'sendMessage': function(params, callback) {
+    if (!this.messages[params.QueueUrl]) this.messages[params.QueueUrl] = [];
+    this.messages[params.QueueUrl].push(params.MessageBody);
+    callback(null);
+  }
+}
+
 function dateToMtime(date) {
   return Math.round(date.valueOf() / 1000);
 }
