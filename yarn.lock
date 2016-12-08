@@ -4,12 +4,6 @@ asn1@~0.2.0:
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/asn1/-/asn1-0.2.3.tgz#dac8787713c9966849fc8180777ebe9c1ddf3b86"
 
-aws-lambda-config@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/aws-lambda-config/-/aws-lambda-config-0.0.1.tgz#36cab8ecc0735f47f05a902bdebfa31e0be7a76c"
-  dependencies:
-    node-s3-encryption-client "^0.0.2"
-
 aws-lambda-mock-context@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/aws-lambda-mock-context/-/aws-lambda-mock-context-1.1.0.tgz#5e83e5dc53aeaf7bb66c012d910a1ec3a7a5c567"

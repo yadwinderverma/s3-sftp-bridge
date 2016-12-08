@@ -15,6 +15,7 @@ describe('main', function() {
     sinon.stub(ssh2, 'Client').returns(client);
     sinon.stub(AWS, 'S3').returns(testHelper.s3);
     sinon.stub(AWS, 'SQS').returns(testHelper.sqs);
+    process.env = testHelper.env;
     main = testHelper.require('../main');
   });
 
@@ -36,7 +37,7 @@ describe('main', function() {
 
   describe('#handle()', function() {
     it('should direct to pollSftp when applicable', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket"}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket"}}';
       testHelper.sftp.objects['dir/my-file.txt'] = 'Hello World!';
       return testHelper.assertContextSuccess(
         main.handle({resources: ["arn:aws:events:us-east-1:1234567890:rule/test-stream"]}, ctx),
@@ -48,8 +49,8 @@ describe('main', function() {
     });
 
     it('should direct to newS3Object when applicable', function() {
-      var s3Event = {  
-        "Records": [  
+      var s3Event = {
+        "Records": [
           {
             "s3": {
               "bucket": {
@@ -63,7 +64,7 @@ describe('main', function() {
         ]
       }
       testHelper.s3.objects["bucket-name/object-key"] = "Hello World!"
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"s3Location":"bucket-name","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"s3Location":"bucket-name","sftpConfig":{}}}';
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
@@ -85,7 +86,7 @@ describe('main', function() {
     });
 
     it('should fail if streamName has no config', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{}';
+      testHelper.env.CONFIG = '{}';
       return testHelper.assertContextFailure(
         main.pollSftp({resources: ["arn:aws:events:us-east-1:1234567890:rule/test-stream"]}, ctx),
         ctx,
@@ -94,7 +95,7 @@ describe('main', function() {
     });
 
     it('should fail if streamName has no s3Location', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpConfig":{}}}';
       return testHelper.assertContextFailure(
         main.pollSftp({resources: ["arn:aws:events:us-east-1:1234567890:rule/test-stream"]}, ctx),
         ctx,
@@ -103,7 +104,7 @@ describe('main', function() {
     });
 
     it('should copy a file', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket"}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket"}}';
       testHelper.sftp.objects['dir/my-file.txt'] = 'Hello World!';
       return testHelper.assertContextSuccess(
         main.pollSftp({resources: ["arn:aws:events:us-east-1:1234567890:rule/test-stream"]}, ctx),
@@ -116,7 +117,7 @@ describe('main', function() {
 
 
     it('should copy a file if the resources property is a string instead of an array', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket"}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket"}}';
       testHelper.sftp.objects['dir/my-file.txt'] = 'Hello World!';
       return testHelper.assertContextSuccess(
         main.pollSftp({resources: "arn:aws:events:us-east-1:1234567890:rule/test-stream"}, ctx),
@@ -128,7 +129,7 @@ describe('main', function() {
     });
 
     it('should copy multiple files in the same resource', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream1":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket1"},"test-stream2":{"sftpLocation":"foo","sftpConfig":{},"s3Location":"my-bucket2"}}';
+      testHelper.env.CONFIG = '{"test-stream1":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket1"},"test-stream2":{"sftpLocation":"foo","sftpConfig":{},"s3Location":"my-bucket2"}}';
       testHelper.sftp.objects['dir/my-file.txt'] = 'Hello World 1!';
       testHelper.sftp.objects['foo/my-file.txt'] = 'Hello World 2!';
       return testHelper.assertContextSuccess(
@@ -142,7 +143,7 @@ describe('main', function() {
     });
 
     it('should copy multiple files in different resources', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream1":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket1"},"test-stream2":{"sftpLocation":"foo","sftpConfig":{},"s3Location":"my-bucket2"}}';
+      testHelper.env.CONFIG = '{"test-stream1":{"sftpLocation":"dir","sftpConfig":{},"s3Location":"my-bucket1"},"test-stream2":{"sftpLocation":"foo","sftpConfig":{},"s3Location":"my-bucket2"}}';
       testHelper.sftp.objects['dir/my-file.txt'] = 'Hello World 1!';
       testHelper.sftp.objects['foo/my-file.txt'] = 'Hello World 2!';
       return testHelper.assertContextSuccess(
@@ -160,8 +161,8 @@ describe('main', function() {
     var s3Event;
 
     beforeEach(function() {
-      s3Event = {  
-        "Records": [  
+      s3Event = {
+        "Records": [
           {
             "s3": {
               "bucket": {
@@ -178,7 +179,7 @@ describe('main', function() {
     });
 
     it('should do nothing if the bucket isn\'t in config', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{}}';
+      testHelper.env.CONFIG = '{"test-stream":{}}';
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
@@ -189,7 +190,7 @@ describe('main', function() {
     });
 
     it('should do nothing if the file is marked as synched', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
       testHelper.s3.metadata["bucket-name/object-key"] = {"synched":"true"};
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
@@ -201,7 +202,7 @@ describe('main', function() {
     });
 
     it('should copy the file to sftp and mark as synched', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
       assert.equal(testHelper.s3.metadata["bucket-name/object-key"], undefined);
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
@@ -217,7 +218,7 @@ describe('main', function() {
     it('should copy the file from S3 subdirectory to sftp', function() {
       s3Event.Records[0].s3.object.key = "sub/dir/object-key"
       testHelper.s3.objects["bucket-name/sub/dir/object-key"] = "Hello World!"
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
@@ -231,7 +232,7 @@ describe('main', function() {
     it('should copy the file from S3 subdirectory location and ignore others', function() {
       s3Event.Records[0].s3.object.key = "sub/dir/object-key"
       testHelper.s3.objects["bucket-name/sub/dir/object-key"] = "Hello World!"
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name/sub","sftpConfig":{}},"test-stream2":{"sftpLocation":"foo","s3Location":"bucket-name/sub2","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name/sub","sftpConfig":{}},"test-stream2":{"sftpLocation":"foo","s3Location":"bucket-name/sub2","sftpConfig":{}}}';
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
@@ -243,7 +244,7 @@ describe('main', function() {
     });
 
     it('should copy the file from S3 to a top-level directory in sftp', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"s3Location":"bucket-name","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"s3Location":"bucket-name","sftpConfig":{}}}';
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
@@ -255,7 +256,7 @@ describe('main', function() {
     });
 
     it('should copy to all matching sftp', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"s3Location":"bucket-name","sftpConfig":{}},"test-stream2":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
+      testHelper.env.CONFIG = '{"test-stream":{"s3Location":"bucket-name","sftpConfig":{}},"test-stream2":{"sftpLocation":"foo","s3Location":"bucket-name","sftpConfig":{}}}';
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
         ctx,
@@ -268,7 +269,7 @@ describe('main', function() {
     });
 
     it('should fail if the sftp config is missing', function() {
-      testHelper.s3.objects["aws.lambda.us-east-1.1234567890.config/test.json"] = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name"}}';
+      testHelper.env.CONFIG = '{"test-stream":{"sftpLocation":"foo","s3Location":"bucket-name"}}';
       assert.equal(Object.keys(testHelper.sqs.messages).length, 0);
       return testHelper.assertContextSuccess(
         main.newS3Object(s3Event, ctx),
