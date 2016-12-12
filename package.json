@@ -2,7 +2,7 @@
   "name": "s3-sftp-bridge",
   "version": "0.0.0",
   "description": "A small Lambda app that syncs files between Amazon S3 and external FTP servers",
-  "main": "index.js",
+  "main": "main.js",
   "directories": {
     "test": "test"
   },
@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "aws-sdk": "2.x",
-    "aws-lambda-config": "^0.0.1",
     "bluebird": "3.x",
     "node-s3-encryption-client": "^0.0.2",
     "ssh2": "^0.5.0"
